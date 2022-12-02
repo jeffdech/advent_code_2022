@@ -1,6 +1,6 @@
 use std::cmp::{PartialOrd, Ord, Ordering};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Move {
     Rock,
     Paper,
@@ -53,6 +53,28 @@ impl Move {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum RoundResult {
+    Win,
+    Lose,
+    Draw
+}
+
+impl RoundResult {
+    pub fn matched_move(&self, matcher: &Move) -> Move {
+        let opts = vec![Move::Rock, Move::Paper, Move::Scissors];
+
+        *opts.iter().filter(|&opt| {
+            match self {
+                RoundResult::Win => opt > matcher,
+                RoundResult::Lose => opt < matcher,
+                RoundResult::Draw => opt == matcher,
+            }
+        })
+        .next().unwrap()
+    }
+}
+
 #[derive(Debug)]
 pub struct MoveList {
     pub moves: Vec<(Move, Move)>,
@@ -82,6 +104,49 @@ impl MoveList {
 
         Self {
             moves
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct StratList {
+    pub moves: Vec<(Move, RoundResult)>
+}
+
+impl StratList {
+    pub fn parse(text: &str) -> Self {
+        let moves = text.lines()
+            .map(|l| {
+                let opp = match l.chars().nth(0).unwrap() {
+                    'A' => Move::Rock,
+                    'B' => Move::Paper,
+                    'C' => Move::Scissors,
+                    _ => unreachable!(),
+                };
+
+                let slf = match l.chars().nth(2).unwrap() {
+                    'X' => RoundResult::Lose,
+                    'Y' => RoundResult::Draw,
+                    'Z' => RoundResult::Win,
+                    _ => unreachable!(),
+                };
+
+                (opp, slf)
+            })
+            .collect();
+
+        Self {
+            moves
+        }
+    }
+
+    pub fn move_list(&self) -> MoveList {
+        MoveList {
+            moves: {
+                self.moves.iter()
+                    .map(|(opp, res)| (res.matched_move(opp), *opp))
+                    .collect()
+            }
         }
     }
 }
