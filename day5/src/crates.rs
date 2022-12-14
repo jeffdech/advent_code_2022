@@ -1,3 +1,4 @@
+use std::{cell::RefCell, borrow::Borrow};
 use std::fmt;
 
 use nom::{
@@ -12,6 +13,7 @@ use nom::{
 
 use itertools::Itertools;
 
+#[derive(Clone, Copy)]
 pub struct Crate(char);
 
 impl fmt::Debug for Crate {
@@ -27,7 +29,7 @@ pub struct Instruction {
     destination: usize
 }
 
-pub struct Piles(Vec<Vec<Crate>>);
+pub struct Piles(Vec<RefCell<Vec<Crate>>>);
 
 impl fmt::Debug for Piles {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -40,14 +42,21 @@ impl fmt::Debug for Piles {
 
 impl Piles {
     pub fn apply(&mut self, inst: Instruction) {
-        for _ in 0..inst.quantity {
-            let elem = self.0[inst.source].pop().unwrap();
-            self.0[inst.destination].push(elem);
+        let crates: Vec<Crate> = (0..inst.quantity)
+            .map(|_| {
+                self.0[inst.source].borrow_mut().pop().unwrap()
+            })
+            .collect();
+
+        
+        for &c in crates.iter().rev()
+        {
+            self.0[inst.destination].borrow_mut().push(c);
         }
     }
 
     pub fn top_crates(&self) -> String {
-        self.0.iter().map(|c| c.last().unwrap().0).join("")
+        self.0.iter().map(|c| c.borrow().last().unwrap().0).join("")
     }
 }
 
@@ -131,7 +140,8 @@ pub mod parse {
 
     pub fn parse_input(i: &str) -> IResult<&str, (Piles, Vec<Instruction>)> {
         let (rest, (crt, _, _, inst, _)) = tuple((
-                map(parse_all_crates, |cs| Piles(cs)),
+                map(parse_all_crates, 
+                    |cs| Piles(cs.into_iter().map(RefCell::new).collect())),
                 parse_number_line,
                 newline,
                 separated_list1(newline, parse_instruction),
