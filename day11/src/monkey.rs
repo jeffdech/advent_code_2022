@@ -59,9 +59,10 @@ pub struct Monkey {
 }
 
 impl Monkey {
-    fn next(&mut self) -> Option<(usize, i64)> {
+    fn next(&mut self, divisor_product: i64) -> Option<(usize, i64)> {
         let mut worry = self.items.pop_front()?;
-        worry = self.op.eval(worry) / 3;
+        worry %= divisor_product;
+        worry = self.op.eval(worry);
 
         let monkey_idx = if (worry % self.test.divisor) == 0 {
             self.test.when_true
@@ -74,9 +75,9 @@ impl Monkey {
         Some((monkey_idx as usize, worry))
     }
 
-    fn process_items(&mut self) -> Vec<(usize, i64)> {
+    fn process_items(&mut self, divisor_product: i64) -> Vec<(usize, i64)> {
         let mut items = Vec::new();
-        while let Some(item) = self.next() {
+        while let Some(item) = self.next(divisor_product) {
             items.push(item);
         }
 
@@ -86,13 +87,16 @@ impl Monkey {
 
 pub struct MonkeyGroup {
     rounds: u64,
+    div_product: i64,
     monkeys: Vec<Monkey>,
 }
 
 impl MonkeyGroup {
     pub fn new(monkeys: Vec<Monkey>) -> Self {
+        let div_product = monkeys.iter().map(|m| m.test.divisor).product();
         MonkeyGroup {
             rounds: 0,
+            div_product,
             monkeys
         }
     }
@@ -104,7 +108,7 @@ impl MonkeyGroup {
     pub fn step_round(&mut self) {
         let nmonkeys = self.monkeys.len();
         for n in 0..nmonkeys {
-            let items = self.monkeys[n].process_items();
+            let items = self.monkeys[n].process_items(self.div_product);
             for (idx, worry) in items {
                 self.monkeys[idx].items.push_back(worry);
             }
