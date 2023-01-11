@@ -89,11 +89,11 @@ pub struct Grid {
 }
 
 impl Grid {
-    const SPAWN_POINT: Point = Point { x: 500, y: 0 };
+    pub const SPAWN_POINT: Point = Point { x: 500, y: 0 };
     pub fn parse(input: &str) -> Self {
         let polylines: Vec<_> = input.lines().map(Polyline::parse).collect();
 
-        let (mut min_x, mut min_y, mut max_x, mut max_y) = (i32::MAX, i32::MAX, i32::MIN, i32::MIN);
+        let (mut min_x, mut min_y, mut max_x, mut max_y) = (200i32, i32::MAX, 800i32, i32::MIN);
 
         for point in polylines
             .iter()
@@ -108,7 +108,12 @@ impl Grid {
 
         let origin = Point { x: min_x, y: min_y };
         let width: usize = (max_x - min_x + 1).try_into().unwrap();
+
         let height: usize = (max_y - min_y + 1).try_into().unwrap();
+        let height = height + 2;
+
+        dbg!("W: {}, H: {}", width, height);
+        dbg!("Origin: {origin:?}");
 
         let mut grid = Self {
             origin,
@@ -120,6 +125,12 @@ impl Grid {
         };
 
         for point in polylines.iter().flat_map(|p| p.path_points()) {
+            *grid.cell_mut(point).unwrap() = Cell::Rock;
+        }
+
+        for x in min_x..max_x {
+            let point = (x as i32, (height - 1) as i32).into();
+            println!("{point:?}");
             *grid.cell_mut(point).unwrap() = Cell::Rock;
         }
 

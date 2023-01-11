@@ -9,10 +9,8 @@ fn main() {
     println!("{grid:?}");
 
     loop {
-        match grid.step() {
-            StepResult::Moving(_) => {continue;},
-            StepResult::Settled(_) => {println!("{grid:?}");}
-            StepResult::Fell => {break;}
+        if let StepResult::Settled(Grid::SPAWN_POINT) = grid.step() {
+            break;
         }
     }
 
